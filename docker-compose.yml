@@ -1,0 +1,61 @@
+# ============================================
+# Docker Compose — SkillHub API
+# ============================================
+# Lancer avec : docker compose up
+# Arrêter avec : docker compose down
+
+services:
+  # ── Service applicatif ─────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder
+    container_name: skillhub-api
+    ports:
+      - "${PORT:-3000}:3000"
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=${NODE_ENV:-development}
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL:-postgresql://skillhub:changeme@db:5432/skillhub_db}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - skillhub-network
+
+  # ── Service base de données ────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: skillhub-db
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-skillhub}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+      - POSTGRES_DB=${POSTGRES_DB:-skillhub_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-skillhub}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - skillhub-network
+
+# ── Volumes persistants ──────────────────────
+volumes:
+  pgdata:
+    driver: local
+
+# ── Réseau ────────────────────────────────────
+networks:
+  skillhub-network:
+    driver: bridge
