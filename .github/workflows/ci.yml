@@ -1,0 +1,106 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+    branches:
+      - main
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ── Pilier 3a : Job Quality (Lint & Test) ──
+  quality:
+    name: Code Quality (Lint & Test)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up .env
+        run: cp .env.dist .env
+
+      - name: Run Lint in Docker
+        run: docker compose run --rm app npm run lint
+
+      - name: Run Tests in Docker
+        run: docker compose run --rm app npm test
+
+  # ── Pilier 3b : Job Build ──
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    needs: quality
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        # Uniquement sur main si on veut pousser l'image (Bonus)
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          # En alternative, on pourrait utiliser DOCKER_USERNAME et DOCKER_PASSWORD pour Docker Hub
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=short
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          # Push l'image uniquement si on est sur la branche main (Bonus)
+          push: ${{ github.ref == 'refs/heads/main' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ── Pilier 3c : Job Deploy (Simulé) ──
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: build
+    # Déclenché uniquement sur la branche main
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Run deploy script
+        run: |
+          chmod +x deploy.sh
+          ./deploy.sh ${{ steps.vars.outputs.sha_short }}
+
+      - name: Upload deployment logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment-logs
+          path: deploy.log
