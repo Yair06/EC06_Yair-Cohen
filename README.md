@@ -1,5 +1,7 @@
 # SkillHub API — EC06 CI/CD & Versioning
 
+[![CI/CD Pipeline](https://github.com/Yair06/EC06_Yair-Cohen/actions/workflows/ci.yml/badge.svg)](https://github.com/Yair06/EC06_Yair-Cohen/actions/workflows/ci.yml)
+
 > Mini API Express (Node.js 20) industrialisée avec Git, Docker et GitHub Actions.
 
 ## 1. Workflow Git & Docker
