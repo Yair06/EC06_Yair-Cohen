@@ -1,0 +1,47 @@
+# ============================================
+# .dockerignore — SkillHub API
+# ============================================
+# Exclut les fichiers inutiles du contexte de build Docker
+
+# Dépendances (seront installées dans le conteneur)
+node_modules/
+
+# Git
+.git/
+.gitignore
+
+# Environnement
+.env
+.env.dist
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+docker-compose.override.yml
+.dockerignore
+
+# Documentation
+README.md
+docs/
+
+# CI/CD
+.github/
+
+# Tests (pas nécessaires en production)
+tests/
+coverage/
+
+# Logs
+*.log
+deploy.log
+deploy.sh
