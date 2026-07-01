@@ -1,7 +1,5 @@
 # SkillHub API — EC06 CI/CD & Versioning
 
-[![CI/CD Pipeline](https://github.com/Yair06/EC06_Yair-Cohen/actions/workflows/ci.yml/badge.svg)](https://github.com/Yair06/EC06_Yair-Cohen/actions/workflows/ci.yml)
-
 > Mini API Express (Node.js 20) industrialisée avec Git, Docker et GitHub Actions.
 > 
 > **Dépôt GitHub** : [https://github.com/Yair06/EC06_Yair-Cohen](https://github.com/Yair06/EC06_Yair-Cohen)
@@ -28,13 +26,10 @@ Nous adoptons une stratégie **GitFlow simplifiée** avec les branches suivantes
 - La CI doit passer au vert avant le merge
 - Pas de push direct autorisé
 
-```
-main ────●────────────────●──── (production)
-          \              /
-develop ───●────●────●──● ──── (intégration)
-            \       /
-feature/x ───●──●──● ──────── (éphémère)
-```
+**Processus de développement** :
+1. Le développement actif se fait sur des branches éphémères `feature/<nom>`.
+2. Une fois terminée, la fonctionnalité est fusionnée vers la branche d'intégration `develop` via Pull Request.
+3. Quand l'application est prête, `develop` est fusionnée vers `main` (qui représente l'environnement de production).
 
 ### 1.2 Dockerfile multistage
 
@@ -70,25 +65,12 @@ Le fichier `docker-compose.yml` orchestre deux services :
 
 ## 2. Architecture du pipeline CI/CD
 
-Le pipeline GitHub Actions est défini dans `.github/workflows/ci.yml` et comporte **4 jobs** :
+Le pipeline s'exécute de manière séquentielle en 4 grandes étapes :
 
-```mermaid
-flowchart TD
-    A[Push sur une branche] --> B[Job quality]
-    B --> B1[cp .env.dist .env]
-    B1 --> B2[docker compose run lint]
-    B2 --> B3[docker compose run test]
-    B3 --> C[Job build]
-    C --> C1[docker build multistage]
-    C1 --> C2[Tag: SHA court + latest]
-    C2 --> D[Job security-scan]
-    D --> D1[Trivy : scan vulnérabilités]
-    D1 --> E{Branche main ?}
-    E -->|Oui| F[Job deploy]
-    E -->|Non| G[Fin]
-    F --> F1[deploy.sh simulé]
-    F1 --> F2[Artefact deploy.log]
-```
+1. **Validation (Job quality)** : À chaque push, le fichier `.env` est généré, puis le linter (ESLint) et les tests (Jest) sont exécutés dans un conteneur via `docker compose run`.
+2. **Construction (Job build)** : Si la validation réussit, l'image Docker multistage est construite et marquée avec le SHA court du commit. Sur la branche `main`, l'image est également taguée `latest` et poussée vers le registre.
+3. **Sécurité (Job security-scan)** : L'image est analysée par Trivy pour détecter d'éventuelles vulnérabilités critiques ou hautes.
+4. **Déploiement (Job deploy)** : Uniquement si nous sommes sur la branche `main` et que toutes les étapes précédentes sont au vert, un script simule le déploiement en production et génère un rapport (`deploy.log`) stocké comme artefact.
 
 **Déclencheurs** : `push` sur toutes les branches + `pull_request` sur `main`.
 
