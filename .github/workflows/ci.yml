@@ -50,14 +50,13 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to the Container registry
-        # Uniquement sur main si on veut pousser l'image (Bonus)
+        # Uniquement sur main si on veut pousser l'image
         if: github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          # En alternative, on pourrait utiliser DOCKER_USERNAME et DOCKER_PASSWORD pour Docker Hub
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Extract metadata (tags, labels) for Docker
         id: meta
