@@ -17,6 +17,10 @@ RUN npm ci
 # Copier le code source
 COPY . .
 
+EXPOSE 3000
+
+CMD ["node", "src/server.js"]
+
 # ── Étape 2 : Production ───────────────────
 # Image finale légère, sans les devDependencies
 FROM node:20-alpine AS production

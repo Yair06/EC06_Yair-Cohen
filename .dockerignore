@@ -37,8 +37,7 @@ docs/
 # CI/CD
 .github/
 
-# Tests (pas nécessaires en production)
-tests/
+# Coverage
 coverage/
 
 # Logs
